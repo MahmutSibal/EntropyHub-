@@ -1,0 +1,131 @@
+# AETHER WEB API - TEST KOMUTLARI
+# ====================================
+
+## TEMEL KONTROLLER
+## -----------------
+
+# 1. Health Check
+Invoke-RestMethod http://localhost:8000/health
+
+# 2. API İstatistikleri
+Invoke-RestMethod http://localhost:8000/stats | Format-List
+
+
+## RASTGELE SAYI ÜRETİMİ
+## ----------------------
+
+# 3. Rastgele 32 Byte (GET)
+Invoke-RestMethod -Uri "http://localhost:8000/random/bytes/32"
+
+# 4. Rastgele 64 Byte (POST)
+$body = @{ count = 64 } | ConvertTo-Json
+Invoke-RestMethod -Uri "http://localhost:8000/random/bytes" -Method Post -Body $body -ContentType "application/json"
+
+# 5. Rastgele Integer'lar (0-100 arası 10 adet)
+$body = @{ count = 10; min_value = 0; max_value = 100 } | ConvertTo-Json
+Invoke-RestMethod -Uri "http://localhost:8000/random/integers" -Method Post -Body $body -ContentType "application/json"
+
+# 6. Rastgele Float'lar (0.0-1.0 arası 5 adet)
+$body = @{ count = 5; min_value = 0.0; max_value = 1.0 } | ConvertTo-Json
+Invoke-RestMethod -Uri "http://localhost:8000/random/floats" -Method Post -Body $body -ContentType "application/json"
+
+# 7. Binary String (128 bit)
+Invoke-RestMethod -Uri "http://localhost:8000/random/binary/128"
+
+# 8. Hexadecimal String (32 byte)
+Invoke-RestMethod -Uri "http://localhost:8000/random/hex/32"
+
+
+## KYBER-768 POST-QUANTUM ŞİFRELEME
+## ---------------------------------
+
+# 9. Anahtar Çifti Üretimi
+Invoke-RestMethod -Uri "http://localhost:8000/crypto/kyber768/keypair" -Method Post
+
+# 10. Tam Kyber-768 Şifreleme Senaryosu (Alice & Bob)
+# Alice anahtar çifti oluşturur
+$alice = Invoke-RestMethod -Uri http://localhost:8000/crypto/kyber768/keypair -Method Post
+
+# Bob, Alice'in public key'i ile encapsulation yapar
+$bob_body = @{ public_key = $alice.public_key } | ConvertTo-Json
+$bob = Invoke-RestMethod -Uri http://localhost:8000/crypto/kyber768/encapsulate -Method Post -Body $bob_body -ContentType "application/json"
+
+# Alice, ciphertext'i decapsulate eder
+$alice_body = @{ 
+    secret_key = $alice.secret_key
+    ciphertext = $bob.ciphertext 
+} | ConvertTo-Json
+$alice_secret = Invoke-RestMethod -Uri http://localhost:8000/crypto/kyber768/decapsulate -Method Post -Body $alice_body -ContentType "application/json"
+
+# Shared secret'ları karşılaştır
+if ($bob.shared_secret -eq $alice_secret.shared_secret) {
+    Write-Host "✅ BAŞARILI! Quantum-safe anahtar değişimi tamamlandı!" -ForegroundColor Green
+}
+
+
+## KULLANIM SENARYOLARI
+## ---------------------
+
+# 11. Zar Atışı Simülasyonu (100 adet, 1-6)
+$body = @{ count = 100; min_value = 1; max_value = 6 } | ConvertTo-Json
+$zarlar = Invoke-RestMethod -Uri "http://localhost:8000/random/integers" -Method Post -Body $body -ContentType "application/json"
+$zarlar.integers | Group-Object | Sort-Object Name | ForEach-Object { Write-Host "$($_.Name): $($_.Count) kez" }
+
+# 12. UUID Benzeri Hex String Üretimi
+$uuid = Invoke-RestMethod -Uri "http://localhost:8000/random/hex/16"
+Write-Host "Random UUID: $uuid"
+
+# 13. Şifre Üretimi (Base64 formatında 32 byte)
+$password_bytes = Invoke-RestMethod -Uri "http://localhost:8000/random/bytes/32"
+$password = [Convert]::ToBase64String($password_bytes.bytes)
+Write-Host "Güçlü Şifre: $password"
+
+# 14. Performans Testi (10,000 byte)
+$perf_body = @{ count = 10000 } | ConvertTo-Json
+$start = Get-Date
+$perf = Invoke-RestMethod -Uri "http://localhost:8000/random/bytes" -Method Post -Body $perf_body -ContentType "application/json"
+$total = ((Get-Date) - $start).TotalMilliseconds
+Write-Host "10,000 byte - API latency: $($perf.latency_us) µs, Total: $total ms"
+
+
+## İNTERAKTİF DOKÜMANTASYON
+## -------------------------
+
+# 15. Swagger UI (Tarayıcıda Aç)
+Start-Process http://localhost:8000/docs
+
+# 16. ReDoc (Alternative Dokümantasyon)
+Start-Process http://localhost:8000/redoc
+
+
+## TOPLU TEST SCRIPT'İ
+## --------------------
+
+# api_test_commands.ps1 dosyası ile tüm testleri çalıştır:
+.\api_test_commands.ps1
+
+
+## NIST ENTROPY TESTLERİ
+## ----------------------
+
+# Temel entropy testi (10 milyon bit)
+python tests\entropy_test.py
+
+# NIST test suite (100k ve 1M bit)
+python tests\nist_test_suite.py
+
+# NIST uyumlu entropy testi
+python tests\entropy_nist.py
+
+
+## ANA PROJE ÇALIŞTIRMA
+## ---------------------
+
+# Main demo (görselleştirme ile)
+python main.py
+
+# Web API başlatma
+cd api
+python main.py
+# veya
+uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
