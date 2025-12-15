@@ -694,21 +694,3 @@ python benchmarks/aether_visualization.py
 **Quantum Seeding**: Optional quantum seeding requires hardware TRNG. Without hardware support, system falls back to `/dev/urandom`.
 
 **Post-Quantum Cryptography**: Kyber-768 is NIST-approved but still relatively new. Monitor NIST PQC updates for best practices.
-
----
-
-## 📞 Contact
-
-**Author**: [Your Name]  
-**Email**: your.email@example.com  
-**GitHub**: [@yourusername](https://github.com/yourusername)
-
----
-
-<div align="center">
-
-**Built with 🧠 Chaos Theory, 🔐 Post-Quantum Cryptography, and ⚡ Rust**
-
-*"In chaos, there is security"*
-
-</div>
