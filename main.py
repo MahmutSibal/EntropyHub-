@@ -8,7 +8,7 @@ from core.chaos.nihde import NIHDE
 from core.pqc.kyber768 import Kyber768
 
 print("=" * 90)
-print(" AETHER v2.1 – Live Quantum-Seeded Hyperchaos + Real Kyber-768 (ML-KEM-768)")
+print(" EntropyHub v2.1 – Live Quantum-Seeded Hyperchaos + Real Kyber-768 (ML-KEM-768)")
 print(" Live QRNG • Hyperchaotic Decision Engine (16.5x Faster Rust Core) • FIPS-203 Compliant Encryption")
 print("=" * 90)
 
@@ -51,12 +51,12 @@ ax.scatter(traj[::20,0], traj[::20,1], traj[::20,2], c='#00ff88', s=5, alpha=0.7
 ax.set_facecolor('black')
 plt.gcf().patch.set_facecolor('black')
 ax.axis('off')
-ax.set_title("AETHER v2.1 – Live Quantum Hyperchaos (Rust Optimized)", color='white', fontsize=28, pad=50)
+ax.set_title("EntropyHub v2.1 – Live Quantum Hyperchaos (Rust Optimized)", color='white', fontsize=28, pad=50)
 plt.tight_layout()
 
 # Save with timestamp
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-save_path = f"docs/figures/aether_attractor_{timestamp}.png"
+save_path = f"docs/figures/entropyhub_attractor_{timestamp}.png"
 plt.savefig(save_path, dpi=600, facecolor='black', bbox_inches='tight')
 print(f"High-resolution attractor saved → {save_path}")
 
@@ -64,5 +64,5 @@ print("\nAttractor displayed. Close window to exit.")
 plt.show()
 
 print("\n" + "="*90)
-print(" AETHER v2.1 DEMO COMPLETED SUCCESSFULLY")
+print(" EntropyHub v2.1 DEMO COMPLETED SUCCESSFULLY")
 print("="*90)

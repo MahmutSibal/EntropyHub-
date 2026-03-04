@@ -1,4 +1,4 @@
-# AETHER WEB API - TEST KOMUTLARI
+# ENTROPYHUB WEB API - TEST KOMUTLARI
 # ====================================
 
 ## TEMEL KONTROLLER
@@ -117,6 +117,19 @@ python tests\nist_test_suite.py
 # NIST uyumlu entropy testi
 python tests\entropy_nist.py
 
+# Gerçek ölçümlü benchmark (RNG + KEM)
+python benchmarks\real_entropyhub_benchmark.py
+
+
+## BAĞIMSIZ VE FORMAL DOĞRULAMA
+## -----------------------------
+
+# Bağımsız doğrulama (istatistik + KEM tutarlılığı)
+python tests\independent_validation.py
+
+# Formal/Bounded doğrulama (özellik/sözleşme kontrolleri)
+python formal\entropyhub_bounded_formal.py
+
 
 ## ANA PROJE ÇALIŞTIRMA
 ## ---------------------
@@ -128,4 +141,4 @@ python main.py
 cd api
 python main.py
 # veya
-uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload

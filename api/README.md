@@ -99,7 +99,15 @@ Encapsulate shared secret
 ```bash
 curl -X POST http://localhost:8000/crypto/kyber768/encapsulate \
   -H "Content-Type: application/json" \
-  -d '{"public_key_hex": "YOUR_PUBLIC_KEY_HEX"}'
+  -d '{"public_key": "YOUR_PUBLIC_KEY_HEX"}'
+```
+
+#### POST /crypto/kyber768/decapsulate
+Decapsulate shared secret
+```bash
+curl -X POST http://localhost:8000/crypto/kyber768/decapsulate \
+  -H "Content-Type: application/json" \
+  -d '{"secret_key": "YOUR_SECRET_KEY_HEX", "ciphertext": "YOUR_CIPHERTEXT_HEX"}'
 ```
 
 ### Benchmarking
@@ -216,8 +224,8 @@ CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
 Build and run:
 ```bash
-docker build -t aether-api .
-docker run -p 8000:8000 aether-api
+docker build -t entropyhub-api .
+docker run -p 8000:8000 entropyhub-api
 ```
 
 ## Security Considerations

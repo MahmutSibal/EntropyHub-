@@ -73,7 +73,7 @@ if runs_status == "FAILED": overall_passed = False
 
 print("\n" + "="*75)
 if overall_passed:
-    print(f"CORE VALIDATION PASSED -> AETHER HYPERCHAOS MEETS FUNDAMENTAL CRITERIA.")
+    print(f"CORE VALIDATION PASSED -> ENTROPYHUB HYPERCHAOS MEETS FUNDAMENTAL CRITERIA.")
 else:
     print(f"CORE VALIDATION FAILED -> REVIEW CHAOS PARAMETERS.")
 print("="*75)

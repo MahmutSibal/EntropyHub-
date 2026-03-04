@@ -3,21 +3,28 @@
 import os
 import sys
 import struct 
-import numpy as np
+import math
 
 # Add the project root directory
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 try:
-    from aether_core_rs import AetherCore
+    try:
+        from entropyhub_core_rs import EntropyHubCore
+    except ImportError:
+        from entropyhub_core_rs import AetherCore as EntropyHubCore
     RUST_CORE_AVAILABLE = True
 except ImportError as e:
-    print(f"WARNING: Could not import aether_core_rs: {e}")
-    print(f"WARNING: Falling back to Python implementation (slower)")
-    RUST_CORE_AVAILABLE = False
+    try:
+        from aether_core_rs import AetherCore as EntropyHubCore
+        RUST_CORE_AVAILABLE = True
+    except ImportError:
+        print(f"WARNING: Could not import entropyhub_core_rs: {e}")
+        print(f"WARNING: Falling back to Python implementation (slower)")
+        RUST_CORE_AVAILABLE = False
     
     # Python fallback implementation
-    class AetherCore:
+    class EntropyHubCore:
         """Pure Python fallback for Rössler chaotic system"""
         def __init__(self, a, b, c, d, e, f, dt):
             self.a = a
@@ -55,12 +62,12 @@ except ImportError as e:
                     self.z = self.z % 100.0
                     
                 # Check for NaN
-                if not (np.isfinite(self.x) and np.isfinite(self.y) and np.isfinite(self.z)):
+                if not (math.isfinite(self.x) and math.isfinite(self.y) and math.isfinite(self.z)):
                     self.x, self.y, self.z = 1.0, 1.0, 1.0
                 
             # Convert final state to byte
             combined = abs(self.x) + abs(self.y) + abs(self.z)
-            if not np.isfinite(combined):
+            if not math.isfinite(combined):
                 combined = 42.0  # fallback value
             return int(combined * 1000) % 256
 
@@ -73,8 +80,8 @@ class NIHDE:
     """
     def __init__(self, use_live_qrng=False):
         
-        # Aether/Rössler stable parameters (a=0.1, b=0.1, c=14.0)
-        self.core = AetherCore(0.1, 0.1, 0.1, 0.1, 0.1, 14.0, 0.01)
+        # EntropyHub/Rössler stable parameters (a=0.1, b=0.1, c=14.0)
+        self.core = EntropyHubCore(0.1, 0.1, 0.1, 0.1, 0.1, 14.0, 0.01)
         
         # Reseed counter (for information purposes only)
         self.reseed_count = 0
@@ -144,4 +151,8 @@ class NIHDE:
                 # For Python implementation, we have direct access
                 trajectory.append([self.core.x, self.core.y, self.core.z])
         
-        return np.array(trajectory)
+        try:
+            import numpy as np
+            return np.array(trajectory)
+        except ImportError:
+            return trajectory

@@ -1,4 +1,4 @@
-# AETHER v2.1: Quantum-Seeded Hyperchaotic PRNG with Post-Quantum Cryptography
+# EntropyHub v2.1: Quantum-Seeded Hyperchaotic PRNG with Post-Quantum Cryptography
 
 [![NIST SP 800-22](https://img.shields.io/badge/NIST-SP%20800--22%20Compliant-success)](https://csrc.nist.gov/publications/detail/sp/800-22/rev-1a/final)
 [![Post-Quantum](https://img.shields.io/badge/PQC-Kyber--768%20(ML--KEM--768)-blue)](https://csrc.nist.gov/Projects/post-quantum-cryptography)
@@ -7,7 +7,7 @@
 
 ## 📊 Abstract
 
-**Aether** is a cryptographically secure pseudo-random number generator (CSPRNG) based on the **Rössler hyperchaotic attractor**, enhanced with optional quantum seeding and post-quantum Kyber-768 encryption. This work presents a comprehensive comparative analysis of six chaotic systems for cryptographic random number generation, demonstrating that **Von Neumann post-processing is mandatory** for achieving NIST SP 800-22 compliance.
+**EntropyHub** is a cryptographically secure pseudo-random number generator (CSPRNG) based on the **Rössler hyperchaotic attractor**, enhanced with optional quantum seeding and post-quantum Kyber-768 encryption. This work presents a comprehensive comparative analysis of six chaotic systems for cryptographic random number generation, demonstrating that **Von Neumann post-processing is mandatory** for achieving NIST SP 800-22 compliance.
 
 Our benchmark study reveals that while all six tested chaotic systems (Rössler, Lorenz, Chen, Hénon, Duffing, Sprott) achieve **100% NIST compliance** with proper post-processing, **Rössler offers the optimal balance** between performance, mathematical simplicity, and chaos intensity. The system is accelerated with a **Rust-optimized core** providing up to **16.5x performance improvement** over pure Python implementations.
 
@@ -30,6 +30,7 @@ Our benchmark study reveals that while all six tested chaotic systems (Rössler,
 - [Installation](#-installation)
 - [Usage Examples](#-usage-examples)
 - [NIST Statistical Tests](#-nist-statistical-tests)
+- [Independent & Formal Validation](#-independent--formal-validation)
 - [Web API Documentation](#-web-api-documentation)
 - [Performance Metrics](#-performance-metrics)
 - [Academic References](#-academic-references)
@@ -51,7 +52,7 @@ We conducted a rigorous benchmark of **6 chaotic systems** for cryptographic ran
 #### Figure 1: Performance Comparison
 ![Performance Comparison](benchmarks/figures/figure1_performance_comparison.png)
 
-**Key Finding**: Rössler (AETHER) demonstrates **balanced performance** with competitive throughput (0.024 Mbps) and moderate latency (332 µs), avoiding the instability of faster systems like Lorenz.
+**Key Finding**: Rössler (EntropyHub) demonstrates **balanced performance** with competitive throughput (0.024 Mbps) and moderate latency (332 µs), avoiding the instability of faster systems like Lorenz.
 
 #### Figure 2: Quality Metrics
 ![Quality Metrics](benchmarks/figures/figure2_quality_metrics.png)
@@ -71,7 +72,7 @@ We conducted a rigorous benchmark of **6 chaotic systems** for cryptographic ran
 
 | System | Runs Test | Freq Test | Entropy | Lyapunov | Throughput | Latency |
 |--------|-----------|-----------|---------|----------|------------|---------|
-| **Rössler (AETHER)** | 0.170 | 0.397 | 7.999 | 16.59 | 0.024 Mbps | 332 µs |
+| **Rössler (EntropyHub)** | 0.170 | 0.397 | 7.999 | 16.59 | 0.024 Mbps | 332 µs |
 | Lorenz | **0.941** | 0.492 | 7.999 | **19.03** | **0.047 Mbps** | **211 µs** |
 | Chen | 0.170 | **0.748** | 7.999 | 18.35 | 0.038 Mbps | 262 µs |
 | Hénon | 0.570 | 0.230 | 7.999 | 13.86 | 0.067 Mbps | 150 µs |
@@ -182,41 +183,33 @@ $$
 
 **100% Pass Rate**: All six systems achieve NIST compliance with Von Neumann post-processing.
 
-### Detailed Results (JSON Export)
+### Detailed Results (Latest Measured Export)
 
 ```json
 {
   "benchmark_metadata": {
-    "timestamp": "2024-12-16",
-    "test_bits": 1000000,
-    "von_neumann_applied": true,
-    "nist_threshold": 0.01
+    "timestamp": "2026-03-04 20:15:53",
+    "source": "benchmarks/real_entropyhub_benchmark.py",
+    "rust_core_available": true
   },
-  "results": [
-    {
-      "name": "Rössler",
-      "nist_frequency_p": 0.397,
-      "nist_runs_p": 0.170,
-      "entropy_bits": 7.999,
-      "lyapunov_exponent": 16.59,
-      "throughput_mbps": 0.024,
-      "latency_us": 332.7,
-      "status": "PASS"
-    },
-    {
-      "name": "Lorenz",
-      "nist_frequency_p": 0.492,
-      "nist_runs_p": 0.941,
-      "entropy_bits": 7.999,
-      "lyapunov_exponent": 19.03,
-      "throughput_mbps": 0.047,
-      "latency_us": 211.2,
-      "status": "PASS"
-    }
-    // ... (see benchmarks/benchmark_results.json for full data)
-  ]
+  "rng": {
+    "latency_us_mean": 7.37093,
+    "throughput_mbps_estimated": 1.08534,
+    "entropy_bits_per_byte": 7.99908,
+    "nist_frequency_p": 0.81252,
+    "nist_runs_p": 0.22525,
+    "passes_basic_randomness": true
+  },
+  "kem": {
+    "keygen_us_mean": 47.5019,
+    "encaps_us_mean": 24.7909,
+    "decaps_us_mean": 22.2091,
+    "success_rate": 1.0
+  }
 }
 ```
+
+See full measured data: `benchmarks/benchmark_results_real.json`
 
 ### Statistical Summary
 
@@ -310,8 +303,8 @@ def extract_byte(state_x, state_y, state_z):
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/aether.git
-cd aether
+git clone https://github.com/yourusername/entropyhub.git
+cd entropyhub
 
 # Create virtual environment
 python -m venv venv
@@ -321,7 +314,7 @@ source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # Build Rust core (optional, 16.5x speedup)
-cd core/chaos/aether_core_rs
+cd core/chaos/entropyhub_core_rs
 cargo build --release
 cd ../../..
 
@@ -355,32 +348,27 @@ pytest>=7.4.0
 
 ## 💻 Usage Examples
 
-### 1. Basic Random Number Generation
+### 1. Basic Random Byte Generation
 
 ```python
 from core.chaos.nihde import NIHDE
 
-# Initialize Aether PRNG
-rng = NIHDE(quantum_seed=False)  # Set True for quantum seeding
+# Initialize EntropyHub PRNG
+rng = NIHDE(use_live_qrng=False)
 
-# Generate random bytes
-random_bytes = rng.generate_bytes(1024)  # 1 KB
-
-# Generate random integers
-random_ints = rng.generate_integers(100, min_val=0, max_val=255)
-
-# Generate float array
-random_floats = rng.generate_floats(1000, min_val=0.0, max_val=1.0)
+# Generate 1024 random bytes
+random_bytes = [rng.decide() for _ in range(1024)]
 ```
 
 ### 2. Quantum-Seeded Generation
 
 ```python
-# Enable quantum random seeding (requires hardware TRNG or /dev/urandom)
-rng = NIHDE(quantum_seed=True)
+# Optional reseed for entropy refresh
+rng = NIHDE(use_live_qrng=False)
+rng.reseed_manual()
 
-# Generate cryptographically secure random key
-aes_key = rng.generate_bytes(32)  # 256-bit key
+# Generate a 256-bit key
+aes_key = bytes([rng.decide() for _ in range(32)])
 ```
 
 ### 3. Post-Quantum Encryption (Kyber-768)
@@ -388,17 +376,14 @@ aes_key = rng.generate_bytes(32)  # 256-bit key
 ```python
 from core.pqc.kyber768 import Kyber768
 
-# Initialize Kyber-768 instance
-kyber = Kyber768()
-
 # Generate keypair
-public_key, secret_key = kyber.keygen()
+public_key, secret_key = Kyber768.keygen()
 
 # Alice: Encapsulate shared secret
-ciphertext, shared_secret_alice = kyber.encapsulate(public_key)
+shared_secret_alice, ciphertext = Kyber768.encaps(public_key)
 
 # Bob: Decapsulate shared secret
-shared_secret_bob = kyber.decapsulate(ciphertext, secret_key)
+shared_secret_bob = Kyber768.decaps(secret_key, ciphertext)
 
 assert shared_secret_alice == shared_secret_bob  # Perfect key agreement
 ```
@@ -414,7 +399,7 @@ uvicorn api.main:app --reload
 Invoke-RestMethod -Uri "http://localhost:8000/health"
 
 # Generate 1024 random bytes
-Invoke-RestMethod -Uri "http://localhost:8000/random/bytes?count=1024" -Method Post
+Invoke-RestMethod -Uri "http://localhost:8000/random/bytes" -Method Post -Body (@{count=1024}|ConvertTo-Json) -ContentType "application/json"
 
 # Generate Kyber-768 keypair
 Invoke-RestMethod -Uri "http://localhost:8000/crypto/kyber768/keypair" -Method Post
@@ -482,7 +467,29 @@ $$
 | Frequency | 0.397 | ✅ PASS | 99% |
 | Runs | 0.170 | ✅ PASS | 99% |
 
-**Conclusion**: Aether (Rössler + Von Neumann) generates statistically indistinguishable output from true random sources.
+**Conclusion**: EntropyHub (Rössler + Von Neumann) generates statistically indistinguishable output from true random sources.
+
+---
+
+## ✅ Independent & Formal Validation
+
+EntropyHub now includes an explicit validation pack with independent and formal tracks:
+
+- Independent validation script: `tests/independent_validation.py`
+- Bounded formal checks: `formal/entropyhub_bounded_formal.py`
+- TLA+ model: `formal/EntropyHubKEM.tla`
+- Validation docs: `docs/verification/README.md`
+- Teknofest full report: `docs/verification/TEKNOFEST_ENTROPYHUB_REPORT.md`
+- Real benchmark export: `benchmarks/benchmark_results_real.json`
+
+Run:
+
+```bash
+python tests/independent_validation.py
+python formal/entropyhub_bounded_formal.py
+python benchmarks/real_entropyhub_benchmark.py
+python docs/verification/generate_teknofest_report.py
+```
 
 ---
 
@@ -532,10 +539,11 @@ POST /crypto/kyber768/keypair
 **Response**:
 ```json
 {
-  "public_key_base64": "eJxT...",
-  "secret_key_base64": "aGVs...",
+  "public_key": "a1b2...",
+  "secret_key": "c3d4...",
   "public_key_size": 1184,
-  "secret_key_size": 2400
+  "secret_key_size": 2400,
+  "implementation_note": "Educational, size-compatible interface; not certified FIPS 203"
 }
 ```
 
@@ -545,7 +553,18 @@ POST /crypto/kyber768/encapsulate
 Content-Type: application/json
 
 {
-  "public_key_base64": "eJxT..."
+  "public_key": "a1b2..."
+}
+```
+
+#### Kyber-768 Decapsulation
+```http
+POST /crypto/kyber768/decapsulate
+Content-Type: application/json
+
+{
+  "secret_key": "c3d4...",
+  "ciphertext": "e5f6..."
 }
 ```
 
@@ -558,22 +577,26 @@ Content-Type: application/json
 
 ## ⚡ Performance Metrics
 
-### Rust Optimization Impact
+### Rust Optimization Impact (Measured on this workspace)
 
 | Implementation | Throughput | Speedup | Memory |
 |---------------|------------|---------|--------|
-| **Pure Python** | 0.0015 Mbps | 1.0x | 45 MB |
-| **Rust (PyO3)** | 0.024 Mbps | **16.5x** | 12 MB |
+| **Pure Python fallback** | 0.052 Mbps | 1.0x | N/A |
+| **Rust (PyO3)** | 1.085 Mbps | **~20.8x** | N/A |
 
-### Latency Breakdown
+### Latest Real Metrics (Rust active)
 
 ```
-Total Latency: 332 µs
-├─ Chaos Iteration (70 steps): 180 µs (54%)
-├─ SHA-256 Hashing: 95 µs (29%)
-├─ Von Neumann Extraction: 42 µs (13%)
-└─ Overhead: 15 µs (4%)
+RNG latency mean:   7.371 µs
+RNG latency median: 6.900 µs
+RNG p95 latency:    8.300 µs
+Entropy:            7.999076 bits/byte
+KEM keygen mean:   47.502 µs
+KEM encaps mean:   24.791 µs
+KEM decaps mean:   22.209 µs
 ```
+
+Source: `benchmarks/benchmark_results_real.json`
 
 ### Scalability
 
@@ -619,14 +642,14 @@ Total Latency: 332 µs
 
 ## 🏆 Citation
 
-If you use Aether in your research, please cite:
+If you use EntropyHub in your research, please cite:
 
 ```bibtex
-@software{aether2024,
-  title = {AETHER v2.1: Quantum-Seeded Hyperchaotic PRNG with Post-Quantum Cryptography},
+@software{entropyhub2024,
+  title = {EntropyHub v2.1: Quantum-Seeded Hyperchaotic PRNG with Post-Quantum Cryptography},
   author = {Your Name},
   year = {2024},
-  url = {https://github.com/yourusername/aether},
+  url = {https://github.com/yourusername/entropyhub},
   note = {Comparative analysis of 6 chaotic systems for cryptographic RNG}
 }
 ```
@@ -664,7 +687,7 @@ Contributions are welcome! Please:
 
 ```bash
 # Install development dependencies
-pip install -r requirements-dev.txt
+pip install -r requirements.txt
 
 # Run tests
 pytest tests/ -v
@@ -673,7 +696,7 @@ pytest tests/ -v
 python benchmarks/chaotic_systems_benchmark.py
 
 # Generate figures
-python benchmarks/aether_visualization.py
+python benchmarks/entropyhub_visualization.py
 ```
 
 ---
@@ -682,14 +705,16 @@ python benchmarks/aether_visualization.py
 
 - **Documentation**: [docs/](docs/)
 - **Benchmark Results**: [benchmarks/benchmark_results.json](benchmarks/benchmark_results.json)
+- **Real Benchmark Results**: [benchmarks/benchmark_results_real.json](benchmarks/benchmark_results_real.json)
 - **Figures**: [benchmarks/figures/](benchmarks/figures/)
-- **API Tests**: [gizli.txt](gizli.txt)
+- **API Tests**: [tests_commands.txt](tests_commands.txt)
+- **Teknofest Report**: [docs/verification/TEKNOFEST_ENTROPYHUB_REPORT.md](docs/verification/TEKNOFEST_ENTROPYHUB_REPORT.md)
 
 ---
 
 ## ⚠️ Security Notice
 
-**Production Use**: While Aether passes NIST statistical tests, it has not undergone formal security audit. For mission-critical applications, use alongside established CSPRNGs (e.g., `/dev/urandom`, `secrets` module).
+**Production Use**: While EntropyHub passes NIST statistical tests, it has not undergone formal security audit. For mission-critical applications, use alongside established CSPRNGs (e.g., `/dev/urandom`, `secrets` module).
 
 **Quantum Seeding**: Optional quantum seeding requires hardware TRNG. Without hardware support, system falls back to `/dev/urandom`.
 

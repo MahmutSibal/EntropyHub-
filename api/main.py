@@ -1,6 +1,6 @@
 # api/main.py
 """
-Aether PRNG - FastAPI Web Service
+EntropyHub PRNG - FastAPI Web Service
 High-performance quantum-seeded random number generation API
 """
 
@@ -28,7 +28,7 @@ stats = None
 async def lifespan(app: FastAPI):
     # Startup
     global engine, start_time, stats
-    print("🚀 Initializing Aether PRNG Engine...")
+    print("🚀 Initializing EntropyHub PRNG Engine...")
     engine = NIHDE(use_live_qrng=False)
     start_time = time.time()
     stats = {
@@ -36,15 +36,15 @@ async def lifespan(app: FastAPI):
         'total_latency': 0.0,
         'requests': 0
     }
-    print("✓ Aether PRNG Engine ready!")
+    print("✓ EntropyHub PRNG Engine ready!")
     yield
     # Shutdown
-    print("👋 Shutting down Aether PRNG Engine...")
+    print("👋 Shutting down EntropyHub PRNG Engine...")
 
 # Initialize FastAPI
 app = FastAPI(
-    title="Aether PRNG API",
-    description="High-performance quantum-seeded chaotic random number generator",
+    title="EntropyHub PRNG API",
+    description="High-performance chaotic random number generator with size-compatible PQC interface",
     version="2.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -55,7 +55,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -103,12 +103,33 @@ class StatsResponse(BaseModel):
     uptime_seconds: float
 
 
+class KyberEncapsulateRequest(BaseModel):
+    public_key: str = Field(description="Hex-encoded public key")
+
+
+class KyberEncapsulateResponse(BaseModel):
+    shared_secret: str
+    ciphertext: str
+    ciphertext_size: int
+    shared_secret_size: int
+
+
+class KyberDecapsulateRequest(BaseModel):
+    secret_key: str = Field(description="Hex-encoded secret key")
+    ciphertext: str = Field(description="Hex-encoded ciphertext")
+
+
+class KyberDecapsulateResponse(BaseModel):
+    shared_secret: str
+    shared_secret_size: int
+
+
 # API Endpoints
 @app.get("/", response_model=dict)
 async def root():
     """API root endpoint"""
     return {
-        "name": "Aether PRNG API",
+        "name": "EntropyHub PRNG API",
         "version": "2.1.0",
         "description": "High-performance quantum-seeded chaotic random number generator",
         "endpoints": {
@@ -118,6 +139,8 @@ async def root():
             "random_floats": "/random/floats",
             "random_binary": "/random/binary",
             "crypto_keypair": "/crypto/kyber768/keypair",
+            "crypto_encapsulate": "/crypto/kyber768/encapsulate",
+            "crypto_decapsulate": "/crypto/kyber768/decapsulate",
             "stats": "/stats"
         }
     }
@@ -128,7 +151,7 @@ async def health_check():
     uptime = time.time() - start_time
     return HealthResponse(
         status="healthy",
-        engine="Aether NIHDE v2.1 (Rust Core)",
+        engine="EntropyHub NIHDE v2.1 (Rust Core)",
         version="2.1.0",
         uptime_seconds=uptime
     )
@@ -277,7 +300,7 @@ async def generate_random_hex(num_bytes: int = Path(ge=1, le=100000, description
 
 @app.post("/crypto/kyber768/keypair")
 async def generate_kyber_keypair():
-    """Generate Kyber-768 quantum-resistant keypair"""
+    """Generate size-compatible Kyber-768 style keypair"""
     try:
         pk, sk = Kyber768.keygen()
         
@@ -287,26 +310,43 @@ async def generate_kyber_keypair():
             "secret_key": sk.hex(),
             "public_key_size": len(pk),
             "secret_key_size": len(sk),
-            "security_level": "NIST Level 3 (192-bit quantum security)"
+            "security_level": "Target: NIST Level 3 (interface-compatible)",
+            "implementation_note": "Educational, size-compatible interface; not certified FIPS 203"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Key generation failed: {str(e)}")
 
-@app.post("/crypto/kyber768/encapsulate")
-async def kyber_encapsulate(public_key_hex: str):
-    """Encapsulate shared secret with Kyber-768"""
+@app.post("/crypto/kyber768/encapsulate", response_model=KyberEncapsulateResponse)
+async def kyber_encapsulate(request: KyberEncapsulateRequest):
+    """Encapsulate shared secret with size-compatible Kyber-768 style interface"""
     try:
-        pk = bytes.fromhex(public_key_hex)
+        pk = bytes.fromhex(request.public_key)
         shared_secret, ciphertext = Kyber768.encaps(pk)
         
-        return {
-            "shared_secret": shared_secret.hex(),
-            "ciphertext": ciphertext.hex(),
-            "ciphertext_size": len(ciphertext),
-            "shared_secret_size": len(shared_secret)
-        }
+        return KyberEncapsulateResponse(
+            shared_secret=shared_secret.hex(),
+            ciphertext=ciphertext.hex(),
+            ciphertext_size=len(ciphertext),
+            shared_secret_size=len(shared_secret)
+        )
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Encapsulation failed: {str(e)}")
+
+
+@app.post("/crypto/kyber768/decapsulate", response_model=KyberDecapsulateResponse)
+async def kyber_decapsulate(request: KyberDecapsulateRequest):
+    """Decapsulate shared secret with size-compatible Kyber-768 style interface"""
+    try:
+        sk = bytes.fromhex(request.secret_key)
+        ct = bytes.fromhex(request.ciphertext)
+        shared_secret = Kyber768.decaps(sk, ct)
+
+        return KyberDecapsulateResponse(
+            shared_secret=shared_secret.hex(),
+            shared_secret_size=len(shared_secret)
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Decapsulation failed: {str(e)}")
 
 @app.get("/benchmark/latency")
 async def benchmark_latency(iterations: int = Query(default=10000, ge=100, le=1000000)):
@@ -338,7 +378,7 @@ if __name__ == "__main__":
     
     print("""
     ╔═══════════════════════════════════════════════════════════════╗
-    ║                   AETHER PRNG API SERVER                      ║
+    ║                 ENTROPYHUB PRNG API SERVER                    ║
     ║                                                               ║
     ║  High-Performance Quantum-Seeded Chaotic RNG                  ║
     ║  Rust-Optimized Core • Kyber-768 PQC • NIST Compliant       ║
