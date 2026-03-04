@@ -1,7 +1,11 @@
 import hashlib
 import json
+import os
+import sys
 import time
 from dataclasses import asdict, dataclass
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from core.chaos.nihde import NIHDE
 from core.pqc.dilithium3 import Dilithium3

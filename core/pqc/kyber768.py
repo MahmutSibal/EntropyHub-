@@ -46,6 +46,8 @@ class Kyber768:
         try:
             ciphertext, shared_secret = ml_kem_768.encrypt(bytes(pk))
             return shared_secret, ciphertext
+        except ValueError:
+            raise
         except Exception:
             mechanism = Kyber768._select_mechanism()
             if not mechanism:
@@ -63,6 +65,8 @@ class Kyber768:
             raise TypeError("ciphertext must be bytes")
         try:
             return ml_kem_768.decrypt(bytes(sk), bytes(ct))
+        except ValueError:
+            raise
         except Exception:
             mechanism = Kyber768._select_mechanism()
             if not mechanism:

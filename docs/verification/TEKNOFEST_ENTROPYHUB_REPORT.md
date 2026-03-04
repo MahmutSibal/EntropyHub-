@@ -1,6 +1,6 @@
 # EntropyHub Teknofest Teknik Raporu
 
-- Rapor zamanı: 2026-03-04 20:21:27
+- Rapor zamanı: 2026-03-04 21:37:44
 - Benchmark kaynağı: `benchmarks/benchmark_results_real.json`
 - Bağımsız doğrulama kaynağı: `docs/verification/independent_validation_report.json`
 - Formal doğrulama kaynağı: `docs/verification/formal_bounded_report.json`
@@ -8,8 +8,8 @@
 ## 1) Yürütme Özeti
 
 - Rust çekirdek aktif: **True**
-- RNG gecikme (ortalama): **7.371 µs**
-- RNG throughput: **1.085 Mbps**
+- RNG gecikme (ortalama): **11.198 µs**
+- RNG throughput: **0.714 Mbps**
 - Entropy: **7.999076 bits/byte**
 - KEM başarı oranı: **100.00%**
 
@@ -25,10 +25,10 @@
 
 | Metrik | Değer |
 |---|---:|
-| Latency mean (µs) | 7.371 |
-| Latency median (µs) | 6.900 |
-| Latency p95 (µs) | 8.300 |
-| Throughput (Mbps) | 1.085345 |
+| Latency mean (µs) | 11.198 |
+| Latency median (µs) | 3.800 |
+| Latency p95 (µs) | 8.500 |
+| Throughput (Mbps) | 0.714406 |
 | Entropy (bits/byte) | 7.999076 |
 | NIST Frequency p | 0.812524 |
 | NIST Runs p | 0.225249 |
@@ -42,12 +42,12 @@
 |---|---:|
 | Trials | 1000 |
 | Success Rate | 100.00% |
-| Keygen mean (µs) | 47.502 |
-| Encaps mean (µs) | 24.791 |
-| Decaps mean (µs) | 22.209 |
-| Keygen p95 (µs) | 70.300 |
-| Encaps p95 (µs) | 38.575 |
-| Decaps p95 (µs) | 35.290 |
+| Keygen mean (µs) | 330.586 |
+| Encaps mean (µs) | 340.240 |
+| Decaps mean (µs) | 118.247 |
+| Keygen p95 (µs) | 370.995 |
+| Encaps p95 (µs) | 384.325 |
+| Decaps p95 (µs) | 139.600 |
 
 ## 5) Bağımsız Doğrulama
 

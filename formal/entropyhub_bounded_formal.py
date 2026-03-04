@@ -1,4 +1,3 @@
-import hashlib
 import json
 import os
 import sys
@@ -9,29 +8,13 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.pqc.kyber768 import Kyber768
 
 
-def derive_shared_secret(pk: bytes, ct: bytes) -> bytes:
-    return hashlib.sha3_256(b"EntropyHub-MLKEM768" + pk + ct).digest()[:32]
-
-
-def build_secret_key_from_pk(pk: bytes) -> bytes:
-    seed_hash = b"\x00" * 32
-    pk_hash = hashlib.sha3_256(pk).digest()
-    z = b"\x01" * 32
-    sk_core = seed_hash + pk + pk_hash + z
-    padding = b"\x02" * (Kyber768.SECRET_KEY_SIZE - len(sk_core))
-    return sk_core + padding
-
-
 def bounded_kem_equivalence_check(domain_size: int = 8) -> None:
-    # Exhaustive finite-domain check: for all pk_id, ct_id in [0, domain_size)
-    for pk_id in range(domain_size):
-        pk = bytes([pk_id]) * Kyber768.PUBLIC_KEY_SIZE
-        sk = build_secret_key_from_pk(pk)
-        for ct_id in range(domain_size):
-            ct = bytes([ct_id]) * Kyber768.CIPHERTEXT_SIZE
-            lhs = derive_shared_secret(pk, ct)
-            rhs = Kyber768.decaps(sk, ct)
-            assert lhs == rhs, f"KEM equivalence violated for pk_id={pk_id}, ct_id={ct_id}"
+    # Bounded consistency check on real KEM flow: decaps(encaps(pk), sk) == ss
+    for _ in range(domain_size):
+        pk, sk = Kyber768.keygen()
+        ss_enc, ct = Kyber768.encaps(pk)
+        ss_dec = Kyber768.decaps(sk, ct)
+        assert ss_enc == ss_dec, "KEM consistency violated in bounded check"
 
 
 def input_contract_check() -> None:
