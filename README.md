@@ -30,6 +30,8 @@ Our benchmark study reveals that while all six tested chaotic systems (Rössler,
 - [Installation](#-installation)
 - [Usage Examples](#-usage-examples)
 - [NIST Statistical Tests](#-nist-statistical-tests)
+- [Independent & Formal Validation](#-independent--formal-validation)
+- [Blockchain Integration](#-blockchain-integration)
 - [Web API Documentation](#-web-api-documentation)
 - [Performance Metrics](#-performance-metrics)
 - [Academic References](#-academic-references)
@@ -492,6 +494,46 @@ python docs/verification/generate_teknofest_report.py
 
 ---
 
+## ⛓️ Blockchain Integration
+
+EntropyHub now includes a blockchain PoC layer focused on oracle and DLT use-cases:
+
+- Oracle PoC (Chainlink-style off-chain flow): `blockchain/oracle_poc.py`
+- DLT PoC (EntropyHub-seeded proposer + PQ signatures): `blockchain/dlt_layer.py`
+- Smart contracts:
+  - `blockchain/contracts/EntropyHubOracle.sol`
+  - `blockchain/contracts/EntropyConsumer.sol`
+
+### Real PQC backend
+
+`core/pqc/kyber768.py` now uses real lattice-based KEM backends:
+
+- Primary: `pqcrypto` (`ml_kem_768`)
+- Optional fallback: `liboqs-python (oqs)`
+
+- `Kyber768` or `ML-KEM-768` (auto-selected from enabled mechanisms)
+
+Block signatures in DLT PoC use:
+
+- Primary: `pqcrypto` (`ml_dsa_65`)
+- Optional fallback: `Dilithium3` or `ML-DSA-65` via `oqs`
+
+Install dependency:
+
+```bash
+pip install pqcrypto
+pip install oqs
+```
+
+Run PoCs:
+
+```bash
+python blockchain/oracle_poc.py
+python blockchain/dlt_layer.py
+```
+
+---
+
 ## 🌐 Web API Documentation
 
 ### FastAPI Endpoints
@@ -704,8 +746,11 @@ python benchmarks/entropyhub_visualization.py
 
 - **Documentation**: [docs/](docs/)
 - **Benchmark Results**: [benchmarks/benchmark_results.json](benchmarks/benchmark_results.json)
+- **Real Benchmark Results**: [benchmarks/benchmark_results_real.json](benchmarks/benchmark_results_real.json)
 - **Figures**: [benchmarks/figures/](benchmarks/figures/)
-- **API Tests**: [tests_commands.txt](tests_commands.txt)
+- **Validation Tests**: [tests/](tests/)
+- **Blockchain PoC**: [blockchain/README.md](blockchain/README.md)
+- **Teknofest Report**: [docs/verification/TEKNOFEST_ENTROPYHUB_REPORT.md](docs/verification/TEKNOFEST_ENTROPYHUB_REPORT.md)
 
 ---
 

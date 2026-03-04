@@ -1,51 +1,59 @@
-import hashlib
-import os
+from pqcrypto.kem import ml_kem_768
+import importlib
 
 
 class Kyber768:
-    """
-    Size-compatible, educational ML-KEM-768 style interface.
-
-    Not a certified FIPS 203 implementation.
-    Key/ciphertext sizes match Kyber-768 conventions and encaps/decaps are
-    internally consistent for integration and benchmarking workflows.
-    """
+    """Real Kyber/ML-KEM wrapper via pqcrypto (primary) and liboqs (fallback)."""
 
     PUBLIC_KEY_SIZE = 1184
     SECRET_KEY_SIZE = 2400
     CIPHERTEXT_SIZE = 1088
     SHARED_SECRET_SIZE = 32
+    MECHANISMS = ("Kyber768", "ML-KEM-768")
+
+    @classmethod
+    def _select_mechanism(cls) -> str:
+        try:
+            oqs = importlib.import_module("oqs")
+        except BaseException:
+            oqs = None
+        if oqs is None:
+            return ""
+        available = set(oqs.get_enabled_kem_mechanisms())
+        for name in cls.MECHANISMS:
+            if name in available:
+                return name
+        return ""
 
     @staticmethod
     def keygen():
-        seed = os.urandom(32)
-        rho = hashlib.sha3_512(seed).digest()[:32]
-        pk = rho + os.urandom(Kyber768.PUBLIC_KEY_SIZE - len(rho))
-
-        # Secret key layout (internal):
-        # [32-byte seed_hash | 1184-byte pk | 32-byte pk_hash | 32-byte z | padding]
-        seed_hash = hashlib.sha3_256(seed).digest()
-        pk_hash = hashlib.sha3_256(pk).digest()
-        z = os.urandom(32)
-        sk_core = seed_hash + pk + pk_hash + z
-        if len(sk_core) > Kyber768.SECRET_KEY_SIZE:
-            raise ValueError("Internal secret key layout exceeds target size")
-        padding = hashlib.shake_256(seed + pk + z).digest(Kyber768.SECRET_KEY_SIZE - len(sk_core))
-        sk = sk_core + padding
-
-        return pk, sk
+        try:
+            return ml_kem_768.generate_keypair()
+        except Exception:
+            mechanism = Kyber768._select_mechanism()
+            if not mechanism:
+                raise RuntimeError("No real Kyber backend available (pqcrypto/liboqs).")
+            oqs = importlib.import_module("oqs")
+            with oqs.KeyEncapsulation(mechanism) as kem:
+                public_key = kem.generate_keypair()
+                secret_key = kem.export_secret_key()
+            return public_key, secret_key
 
     @staticmethod
     def encaps(pk):
         if not isinstance(pk, (bytes, bytearray)):
             raise TypeError("public key must be bytes")
-        if len(pk) != Kyber768.PUBLIC_KEY_SIZE:
-            raise ValueError(f"public key must be {Kyber768.PUBLIC_KEY_SIZE} bytes")
-
-        ciphertext = os.urandom(Kyber768.CIPHERTEXT_SIZE)
-        shared_secret = hashlib.sha3_256(b"EntropyHub-MLKEM768" + bytes(pk) + ciphertext).digest()
-
-        return shared_secret[:Kyber768.SHARED_SECRET_SIZE], ciphertext
+        try:
+            ciphertext, shared_secret = ml_kem_768.encrypt(bytes(pk))
+            return shared_secret, ciphertext
+        except Exception:
+            mechanism = Kyber768._select_mechanism()
+            if not mechanism:
+                raise RuntimeError("No real Kyber backend available (pqcrypto/liboqs).")
+            oqs = importlib.import_module("oqs")
+            with oqs.KeyEncapsulation(mechanism) as kem:
+                ciphertext, shared_secret = kem.encap_secret(bytes(pk))
+            return shared_secret, ciphertext
 
     @staticmethod
     def decaps(sk, ct):
@@ -53,21 +61,20 @@ class Kyber768:
             raise TypeError("secret key must be bytes")
         if not isinstance(ct, (bytes, bytearray)):
             raise TypeError("ciphertext must be bytes")
-        if len(sk) != Kyber768.SECRET_KEY_SIZE:
-            raise ValueError(f"secret key must be {Kyber768.SECRET_KEY_SIZE} bytes")
-        if len(ct) != Kyber768.CIPHERTEXT_SIZE:
-            raise ValueError(f"ciphertext must be {Kyber768.CIPHERTEXT_SIZE} bytes")
-
-        pk_start = 32
-        pk_end = pk_start + Kyber768.PUBLIC_KEY_SIZE
-        pk = bytes(sk[pk_start:pk_end])
-        shared_secret = hashlib.sha3_256(b"EntropyHub-MLKEM768" + pk + bytes(ct)).digest()
-
-        return shared_secret[:Kyber768.SHARED_SECRET_SIZE]
+        try:
+            return ml_kem_768.decrypt(bytes(sk), bytes(ct))
+        except Exception:
+            mechanism = Kyber768._select_mechanism()
+            if not mechanism:
+                raise RuntimeError("No real Kyber backend available (pqcrypto/liboqs).")
+            oqs = importlib.import_module("oqs")
+            with oqs.KeyEncapsulation(mechanism, secret_key=bytes(sk)) as kem:
+                shared_secret = kem.decap_secret(bytes(ct))
+            return shared_secret
 
 # Test
 if __name__ == "__main__":
-    print("EntropyHub v2.0 — Real Kyber-768 (ML-KEM-768) Test")
+    print("EntropyHub v2.0 — Real Kyber/ML-KEM Test")
     print("=" * 65)
 
     pk, sk = Kyber768.keygen()
@@ -85,6 +92,6 @@ if __name__ == "__main__":
     print(f"MATCH         : {'YES – PERFECT!' if ss_alice == ss_bob else 'NO'}")
 
     print("=" * 65)
-    print("REAL KYBER-768 IS RUNNING – FIPS 203 COMPLIANT")
-    print("EntropyHub v2.0 is now a true post-quantum encryption engine.")
+    print("REAL KYBER/ML-KEM IS RUNNING via liboqs")
+    print("EntropyHub v2.0 uses lattice-based PQC primitives.")
     print("=" * 65)
