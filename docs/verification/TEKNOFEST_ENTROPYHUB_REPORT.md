@@ -59,12 +59,14 @@
 - Lag-1 autocorr: 0.001106
 - KEM success: 100.00%
 
-## 6) Formal/Bağlı Doğrulama
+## 6) Bounded Formal Doğrulama
 
 - Durum: **PASS**
 - Bounded KEM domain size: 16
 - Input contract check: True
 - RNG output range check: True
+
+Not: Bu bölüm bounded davranış ve sözleşme kontrollerini raporlar; tek başına kriptografik güvenlik ispatı yerine geçmez.
 
 ## 7) Yeniden Üretilebilirlik Komutları
 

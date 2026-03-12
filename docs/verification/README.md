@@ -3,7 +3,7 @@
 Bu klasör, iki farklı doğrulama hattını içerir:
 
 1. **Bağımsız doğrulama (istatistik + KEM tutarlılığı)**
-2. **Formal/Bounded doğrulama (özellik ispatı ve sözleşme kontrolleri)**
+2. **Bounded/formal doğrulama (özellik kontrolleri ve sözleşme doğrulaması)**
 
 ## 1) Bağımsız doğrulama
 
@@ -23,13 +23,13 @@ Kontrol edilen metrikler:
 - Lag-1 autocorrelation
 - KEM encaps/decaps success rate
 
-## 2) Formal / Bounded doğrulama
+## 2) Bounded / Formal doğrulama
 
 ```bash
 python formal/entropyhub_bounded_formal.py
 ```
 
-Bu script şunları doğrular:
+Bu script şunları bounded kapsamda doğrular:
 
 - Sonlu alan üzerinde kapsülleme/açma eşitliği
 - KEM giriş boyut sözleşmeleri
@@ -39,4 +39,4 @@ Bu script şunları doğrular:
 
 - `formal/EntropyHubKEM.tla`
 
-Bu dosya, KEM durum makinesi için paylaşılmış sır eşitliği (`SharedSecretAgreement`) invariant'ını modeller.
+Bu dosya, KEM durum makinesi için paylaşılmış sır eşitliği (`SharedSecretAgreement`) invariant'ını modeller; tam kriptografik güvenlik ispatı yerine davranışsal bir model sağlar.

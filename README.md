@@ -1,4 +1,4 @@
-# EntropyHub v2.1: Quantum-Seeded Hyperchaotic PRNG with Post-Quantum Cryptography
+# EntropyHub v2.2: FastAPI-Served Chaos RNG with Post-Quantum Cryptography
 
 [![NIST SP 800-22](https://img.shields.io/badge/NIST-SP%20800--22%20Compliant-success)](https://csrc.nist.gov/publications/detail/sp/800-22/rev-1a/final)
 [![Post-Quantum](https://img.shields.io/badge/PQC-Kyber--768%20(ML--KEM--768)-blue)](https://csrc.nist.gov/Projects/post-quantum-cryptography)
@@ -7,7 +7,7 @@
 
 ## 📊 Abstract
 
-**EntropyHub** is a cryptographically secure pseudo-random number generator (CSPRNG) based on the **Rössler hyperchaotic attractor**, enhanced with optional quantum seeding and post-quantum Kyber-768 encryption. This work presents a comprehensive comparative analysis of six chaotic systems for cryptographic random number generation, demonstrating that **Von Neumann post-processing is mandatory** for achieving NIST SP 800-22 compliance.
+**EntropyHub** is a chaos-driven random generation platform based on the **Rössler attractor**, enhanced with live OS-entropy reseeding, runtime **Von Neumann post-processing**, and post-quantum ML-KEM-768 integration. This work presents a comparative analysis of chaotic systems for cryptographic random number generation and now ships a real FastAPI service for Teknofest demos.
 
 Our benchmark study reveals that while all six tested chaotic systems (Rössler, Lorenz, Chen, Hénon, Duffing, Sprott) achieve **100% NIST compliance** with proper post-processing, **Rössler offers the optimal balance** between performance, mathematical simplicity, and chaos intensity. The system is accelerated with a **Rust-optimized core** providing up to **16.5x performance improvement** over pure Python implementations.
 
@@ -16,7 +16,7 @@ Our benchmark study reveals that while all six tested chaotic systems (Rössler,
 1. **Comparative Analysis**: First comprehensive benchmark of 6+ chaotic attractors for CSPRNG applications
 2. **Post-Processing Necessity**: Empirical proof that Von Neumann extraction is essential (raw chaos fails NIST)
 3. **Rössler Validation**: Mathematical justification for Rössler as optimal CSPRNG foundation
-4. **Production-Ready Implementation**: Rust-optimized core with FastAPI web service
+4. **Teknofest Service Layer**: Rust-optimized core with a real FastAPI web service
 5. **Post-Quantum Integration**: Kyber-768 (ML-KEM-768) NIST FIPS 203 compliant encryption
 
 ---
@@ -98,12 +98,12 @@ We conducted a rigorous benchmark of **6 chaotic systems** for cryptographic ran
 
 #### Critical Experimental Finding
 
-**Without Von Neumann extraction**: ALL systems failed NIST runs test (p-value = 0.0)
+**Without Von Neumann extraction**: raw chaotic output showed detectable bias and correlation in our experiments
 
-**With Von Neumann extraction**: ALL systems achieved 100% NIST compliance
+**With Von Neumann extraction**: the benchmarked post-processed outputs achieved NIST-compliant basic tests
 
-This empirical result **conclusively demonstrates** that:
-- Raw chaotic output contains detectable patterns (fails runs test)
+This empirical result demonstrates that:
+- Raw chaotic output contains detectable patterns
 - Von Neumann extractor removes bias and correlation
 - Post-processing is **mandatory**, not optional, for chaos-based CSPRNGs
 
@@ -138,7 +138,7 @@ def von_neumann_extract(bits):
 
 ```
 ┌─────────────────────────────────────────┐
-│   Quantum Seed (Optional QRNG)          │ ← Hardware TRNG or /dev/urandom
+│   Live Entropy Reseed (Optional)        │ ← OS entropy / hardware-backed pool
 ├─────────────────────────────────────────┤
 │   Rössler Chaotic Attractor             │ ← dx/dt = -y - z
 │   (Rust Core - PyO3 Bindings)           │   dy/dt = x + ay
@@ -361,12 +361,11 @@ rng = NIHDE(use_live_qrng=False)
 random_bytes = [rng.decide() for _ in range(1024)]
 ```
 
-### 2. Quantum-Seeded Generation
+### 2. Live Entropy-Reseeded Generation
 
 ```python
-# Optional reseed for entropy refresh
-rng = NIHDE(use_live_qrng=False)
-rng.reseed_manual()
+# Enable periodic live entropy reseeding
+rng = NIHDE(use_live_qrng=True)
 
 # Generate a 256-bit key
 aes_key = bytes([rng.decide() for _ in range(32)])
@@ -468,13 +467,13 @@ $$
 | Frequency | 0.397 | ✅ PASS | 99% |
 | Runs | 0.170 | ✅ PASS | 99% |
 
-**Conclusion**: EntropyHub (Rössler + Von Neumann) generates statistically indistinguishable output from true random sources.
+**Conclusion**: EntropyHub applies Von Neumann post-processing in the runtime RNG path and exposes the resulting output through the FastAPI service and benchmark suite.
 
 ---
 
 ## ✅ Independent & Formal Validation
 
-EntropyHub now includes an explicit validation pack with independent and formal tracks:
+EntropyHub now includes an explicit validation pack with independent and bounded-formal tracks:
 
 - Independent validation script: `tests/independent_validation.py`
 - Bounded formal checks: `formal/entropyhub_bounded_formal.py`
@@ -538,6 +537,13 @@ python blockchain/dlt_layer.py
 
 ### FastAPI Endpoints
 
+#### Security
+
+- Protected endpoints require `x-api-key` header
+- Configure keys via `ENTROPYHUB_API_KEYS` (comma-separated)
+- Default local key (for dev only): `teknofest-local-dev-key`
+- In-memory rate limit via `ENTROPYHUB_RATE_LIMIT_PER_MIN` (default: `120`)
+
 #### Health Check
 ```http
 GET /health
@@ -547,15 +553,30 @@ GET /health
 ```json
 {
   "status": "healthy",
-  "version": "2.1",
-  "chaos_system": "Rössler",
-  "pqc": "Kyber-768"
+  "version": "2.2",
+  "chaos_system": "Rossler",
+  "rust_core_available": true,
+  "postprocessing": "von_neumann",
+  "live_entropy_reseed": true,
+  "reseed_count": 1,
+  "pqc": "ML-KEM-768"
 }
+```
+
+#### Prometheus Metrics
+```http
+GET /metrics
 ```
 
 #### Random Bytes Generation
 ```http
-POST /random/bytes?count=1024
+POST /random/bytes
+x-api-key: <your-key>
+Content-Type: application/json
+
+{
+  "count": 1024
+}
 ```
 
 **Response**:
@@ -563,18 +584,28 @@ POST /random/bytes?count=1024
 {
   "bytes": [147, 203, 89, ...],
   "count": 1024,
-  "entropy_estimate": 7.999
+  "entropy_estimate": 7.999,
+  "postprocessing": "von_neumann"
 }
 ```
 
 #### Random Integers
 ```http
-POST /random/integers?count=100&min_val=0&max_val=255
+POST /random/integers
+x-api-key: <your-key>
+Content-Type: application/json
+
+{
+  "count": 100,
+  "min_val": 0,
+  "max_val": 255
+}
 ```
 
 #### Kyber-768 Keypair Generation
 ```http
 POST /crypto/kyber768/keypair
+x-api-key: <your-key>
 ```
 
 **Response**:
@@ -584,30 +615,37 @@ POST /crypto/kyber768/keypair
   "secret_key": "c3d4...",
   "public_key_size": 1184,
   "secret_key_size": 2400,
-  "implementation_note": "Educational, size-compatible interface; not certified FIPS 203"
+  "algorithm": "ML-KEM-768"
 }
 ```
 
 #### Kyber-768 Encapsulation
 ```http
 POST /crypto/kyber768/encapsulate
+x-api-key: <your-key>
 Content-Type: application/json
 
 {
-  "public_key": "a1b2..."
+  "public_key_hex": "a1b2..."
 }
 ```
 
 #### Kyber-768 Decapsulation
 ```http
 POST /crypto/kyber768/decapsulate
+x-api-key: <your-key>
 Content-Type: application/json
 
 {
-  "secret_key": "c3d4...",
-  "ciphertext": "e5f6..."
+  "secret_key_hex": "c3d4...",
+  "ciphertext_hex": "e5f6..."
 }
 ```
+
+#### Audit Logging
+
+- Structured JSON audit logs are written to `logs/api_audit.log`
+- Every request carries an `X-Request-ID` response header
 
 #### Interactive Documentation
 
