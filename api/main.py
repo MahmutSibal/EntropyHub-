@@ -329,6 +329,11 @@ def health():
     }
 
 
+@app.get("/api/health")
+def health_legacy():
+    return health()
+
+
 @app.get("/metrics")
 def metrics():
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
@@ -337,6 +342,11 @@ def metrics():
 @app.post("/chaos/reseed")
 def chaos_reseed(request: ReseedRequest):
     return service.reseed(request.source)
+
+
+@app.post("/api/reseed")
+def chaos_reseed_legacy(request: ReseedRequest):
+    return chaos_reseed(request)
 
 
 @app.post("/random/bytes")
@@ -351,6 +361,19 @@ def random_bytes(request: RandomBytesRequest):
     }
 
 
+@app.get("/api/generate")
+def random_bytes_legacy(bytes: int = 32):
+    values = service.random_bytes(bytes)
+    GENERATED_BYTES.inc(bytes)
+    return {
+        "values": values,
+        "bytes": bytes,
+        "count": bytes,
+        "entropy_estimate": round(_shannon_entropy(values), 6),
+        "postprocessing": "von_neumann",
+    }
+
+
 @app.post("/random/integers")
 def random_integers(request: RandomIntegersRequest):
     GENERATED_BYTES.inc(request.count)
@@ -359,6 +382,17 @@ def random_integers(request: RandomIntegersRequest):
         "count": request.count,
         "min_val": request.min_val,
         "max_val": request.max_val,
+    }
+
+
+@app.get("/api/stats")
+def stats_legacy():
+    profile = service.profile()
+    return {
+        "total_bytes": None,
+        "generation_count": profile.get("generated", 0),
+        "reseed_count": profile.get("reseed_count", 0),
+        "postprocessing": profile.get("postprocessing"),
     }
 
 

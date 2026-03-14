@@ -1,12 +1,11 @@
 
-"use client";
-
 import React, { useState, useEffect } from 'react';
 import { BrowserProvider, Contract } from 'ethers';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
 import * as THREE from 'three';
-import EntropyService from '../lib/service';
+import EntropyService from './service'; 
+import './App.css';
 import EntropyPipeline from './EntropyPipeline';
 
 // İkon Bileşenleri
@@ -230,7 +229,7 @@ function App() {
   const [stats, setStats] = useState({ totalBytes: 0, generationCount: 0 });
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState({ source: 'os_entropy', format: 'dec' });
-  const [rotationSpeed, setRotationSpeed] = useState(0.5);
+  const rotationSpeed = 0.5;
   const [showStatusModal, setShowStatusModal] = useState(false);
 
   // Toast Gösterici
@@ -285,27 +284,28 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [loading, showSettings, walletAddress]); 
 
-  // Sayfa kaydırma (scroll) ile 3D dönüş hızını ayarlama
-  useEffect(() => {
-    const handleScroll = () => {
-      // Temel hız 0.5, aşağı kaydırdıkça artar (çarpanı zevkinize göre değiştirebilirsiniz)
-      const newSpeed = 0.5 + (window.scrollY * 0.005);
-      setRotationSpeed(newSpeed);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   // Gerçek zamanlı sistem sağlığı kontrolü (Polling)
   useEffect(() => {
     const checkHealth = async () => {
       try {
         const healthData = await EntropyService.getHealth();
-        setSystemStatus(healthData);
+        setSystemStatus((prev) => {
+          if (
+            prev.status === healthData.status &&
+            prev.chaos_system === healthData.chaos_system
+          ) {
+            return prev;
+          }
+          return healthData;
+        });
       } catch (error) {
         // Hata durumunda sistemi 'PASİF' duruma (kırmızı ışık) geçirir
-        setSystemStatus({ status: 'error', chaos_system: '-' });
+        setSystemStatus((prev) => {
+          if (prev.status === 'error' && prev.chaos_system === '-') {
+            return prev;
+          }
+          return { status: 'error', chaos_system: '-' };
+        });
       }
     };
     
@@ -418,7 +418,7 @@ function App() {
       </div>
 
       {/* Navbar / Header */}
-      <nav className={`relative z-50 flex justify-between items-center gap-3 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 border-b ${isDarkMode ? 'border-white/5 bg-[#0A1929]/80' : 'border-[#e2e8f0] bg-[#ffffff]/80'} backdrop-blur-xl sticky top-0`}>
+      <nav className={`relative z-50 flex justify-between items-center gap-2 sm:gap-3 px-3 sm:px-6 lg:px-8 py-3 sm:py-5 border-b ${isDarkMode ? 'border-white/5 bg-[#0A1929]/80' : 'border-[#e2e8f0] bg-[#ffffff]/80'} backdrop-blur-xl sticky top-0`}>
         <div className="flex items-center gap-3">
           <div className="relative">
             <div className="w-3 h-3 bg-[#00FFA3] rounded-full animate-pulse shadow-[0_0_10px_#00FFA3]"></div>
@@ -429,7 +429,7 @@ function App() {
           </h1>
         </div>
         
-        <div className="flex items-center gap-2 sm:gap-3 lg:gap-4">
+        <div className="flex items-center gap-4">
           <button 
             onClick={() => setShowSettings(!showSettings)} 
             className={`p-2.5 rounded-xl transition-all duration-300 ${showSettings ? 'bg-[#00FFA3]/20 text-[#00FFA3]' : 'hover:bg-white/10'}`}
@@ -441,7 +441,7 @@ function App() {
             href="https://github.com/Ahmetoyann/EntropyHub_A" 
             target="_blank" 
             rel="noopener noreferrer"
-            className="hidden sm:inline-flex p-2.5 rounded-xl transition-all duration-300 hover:bg-white/10 hover:text-[#00FFA3] text-gray-300"
+            className="p-2.5 rounded-xl transition-all duration-300 hover:bg-white/10 hover:text-[#00FFA3] text-gray-300"
             title="View Source on GitHub"
           >
             <GithubIcon />
@@ -449,7 +449,7 @@ function App() {
           
           <button
             onClick={connectWallet}
-            className={`px-3 sm:px-6 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all duration-300 border backdrop-blur-sm shadow-lg transform hover:-translate-y-0.5 ${
+            className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all duration-300 border backdrop-blur-sm shadow-lg transform hover:-translate-y-0.5 ${
               walletAddress
                 ? `${isDarkMode ? 'bg-[#0A1929] text-[#00FFA3]' : 'bg-[#ffffff] text-[#0A1929]'} ${accentBorder} hover:shadow-[#00FFA3]/20`
                 : 'bg-gradient-to-r from-[#00FFA3] to-cyan-500 hover:from-[#00E090] hover:to-cyan-400 border-transparent text-[#0A1929] hover:shadow-[0_0_20px_rgba(0,255,163,0.4)]'
@@ -471,10 +471,10 @@ function App() {
       <StatusModal isOpen={showStatusModal} onClose={() => setShowStatusModal(false)} systemStatus={systemStatus} isDarkMode={isDarkMode} />
 
       {/* Main Layout */}
-      <main className="relative z-10 container mx-auto px-3 sm:px-4 lg:px-6 py-4 lg:py-6 flex flex-col lg:flex-row gap-4 lg:gap-6 flex-grow">
+      <main className="relative z-10 container mx-auto p-4 lg:p-6 flex flex-col lg:flex-row gap-6 flex-grow">
         
         {/* Sidebar: Kontrol Paneli (Sabit Genişlik) */}
-        <aside className="w-full lg:w-[22rem] xl:w-96 flex-shrink-0 space-y-4 lg:space-y-6">
+        <aside className="w-full lg:w-80 flex-shrink-0 space-y-6">
           
           {/* Ayarlar Paneli (Conditional) */}
           {showSettings && (
@@ -556,9 +556,9 @@ function App() {
             )}
           </div>
           
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2">
             {/* Sistem Durumu */}
-            <div className={`flex flex-col items-center justify-center p-3 ${isDarkMode ? 'bg-[#0A1929]/50 border-gray-800' : 'bg-[#ffffff] border-[#e2e8f0]'} rounded-2xl border hover:border-[#00FFA3]/30 transition-all duration-300 hover:-translate-y-1`}>
+            <div className={`flex flex-col items-center justify-center p-2 ${isDarkMode ? 'bg-[#0A1929]/50 border-gray-800' : 'bg-[#ffffff] border-[#e2e8f0]'} rounded-2xl border hover:border-[#00FFA3]/30 transition-all duration-300 hover:-translate-y-1`}>
               <div className="flex items-center gap-2 mb-2">
                 <div className="relative">
                    <div className={`w-2.5 h-2.5 rounded-full ${systemStatus.status === 'healthy' ? 'bg-[#00FFA3] shadow-[0_0_8px_#00FFA3]' : 'bg-red-500'}`}></div>
@@ -573,7 +573,7 @@ function App() {
             </div>
 
             {/* Algoritma */}
-            <div className={`flex flex-col items-center justify-center p-3 ${isDarkMode ? 'bg-[#0A1929]/50 border-gray-800' : 'bg-[#ffffff] border-[#e2e8f0]'} rounded-2xl border hover:border-purple-500/30 transition-all duration-300 hover:-translate-y-1`}>
+            <div className={`flex flex-col items-center justify-center p-2 ${isDarkMode ? 'bg-[#0A1929]/50 border-gray-800' : 'bg-[#ffffff] border-[#e2e8f0]'} rounded-2xl border hover:border-purple-500/30 transition-all duration-300 hover:-translate-y-1`}>
               <div className="mb-2">
                  <Cpu size={20} className="text-purple-400" />
               </div>
@@ -584,7 +584,7 @@ function App() {
             </div>
 
             {/* Ağ Bilgisi */}
-            <div className={`flex flex-col items-center justify-center p-3 ${isDarkMode ? 'bg-[#0A1929]/50 border-gray-800' : 'bg-[#ffffff] border-[#e2e8f0]'} rounded-2xl border hover:border-blue-500/30 transition-all duration-300 hover:-translate-y-1`}>
+            <div className={`flex flex-col items-center justify-center p-2 ${isDarkMode ? 'bg-[#0A1929]/50 border-gray-800' : 'bg-[#ffffff] border-[#e2e8f0]'} rounded-2xl border hover:border-blue-500/30 transition-all duration-300 hover:-translate-y-1`}>
               <div className="mb-2">
                  <Wifi size={20} className="text-blue-400" />
               </div>
@@ -625,9 +625,9 @@ function App() {
           </div>
 
           {/* Alt Panel: İstatistikler ve Çıktı */}
-          <div className="w-full flex flex-col xl:flex-row gap-4 lg:gap-6">
+          <div className="w-full flex flex-col xl:flex-row gap-6">
             {/* İstatistikler */}
-            <div className={`w-full xl:w-1/3 flex flex-col p-5 sm:p-6 rounded-3xl border ${isDarkMode ? 'bg-[#0A1929]/30 border-gray-800' : 'bg-[#ffffff] border-[#e2e8f0]'}`}>
+            <div className={`w-full xl:w-1/3 flex flex-col p-6 rounded-3xl border ${isDarkMode ? 'bg-[#0A1929]/30 border-gray-800' : 'bg-[#ffffff] border-[#e2e8f0]'}`}>
                <div className="flex items-center gap-3 mb-6">
                  <ChartIcon size={20} className={accentColor} />
                  <span className={`text-sm font-bold uppercase tracking-wider ${subTextColor}`}>Statistics</span>
@@ -645,15 +645,15 @@ function App() {
             </div>
 
             {/* Çıktı Alanı */}
-            <div className={`w-full xl:w-2/3 glass-card ${glassCardClass} backdrop-blur-xl rounded-3xl p-5 sm:p-6 lg:p-8 shadow-2xl transition-colors duration-500 flex flex-col`}>
+            <div className={`w-full xl:w-2/3 glass-card ${glassCardClass} backdrop-blur-xl rounded-3xl p-6 lg:p-8 shadow-2xl transition-colors duration-500 flex flex-col`}>
               <h3 className={`text-sm font-bold mb-6 ${textColor} border-b ${isDarkMode ? 'border-white/10' : 'border-[#e2e8f0]'} pb-4 flex items-center gap-2`}>
                 <span className={`w-1.5 h-6 rounded-full ${isDarkMode ? 'bg-[#00FFA3] shadow-[0_0_10px_#00FFA3]' : 'bg-[#0A1929]'}`}></span>
                 Output (Byte Stream)
               </h3>
               
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-9 gap-3 sm:gap-4 content-start flex-1">
+              <div className="grid grid-cols-3 sm:grid-cols-6 lg:grid-cols-9 gap-3 content-start flex-1">
                 {entropyData.length > 0 ? entropyData.map((val, idx) => (
-                  <div key={idx} className={`${isDarkMode ? 'bg-[#0A1929]/40 border-white/5' : 'bg-[#f8fafc] border-[#e2e8f0]'} border p-3 sm:p-4 rounded-2xl text-center animate-fade-in-up hover:border-[#00FFA3]/50 hover:bg-[#00FFA3]/5 transition-all duration-300 group relative overflow-hidden shadow-sm`}>
+                  <div key={idx} className={`${isDarkMode ? 'bg-[#0A1929]/40 border-white/5' : 'bg-[#f8fafc] border-[#e2e8f0]'} border p-3 rounded-2xl text-center animate-fade-in-up hover:border-[#00FFA3]/50 hover:bg-[#00FFA3]/5 transition-all duration-300 group relative overflow-hidden shadow-sm`}>
                     <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-[#00FFA3]/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
                     <span className={`block text-[10px] ${isDarkMode ? 'text-slate-500' : 'text-gray-400'} mb-1.5 uppercase tracking-widest font-bold`}>B-{idx + 1}</span>
                     <span className={`font-mono ${accentColor} font-bold text-lg ${isDarkMode ? 'group-hover:text-white' : 'group-hover:text-[#0A1929]'} transition-colors text-shadow-glow`}>{
@@ -678,12 +678,12 @@ function App() {
       <EntropyPipeline entropyData={entropyData} blockNumber={blockNumber} showToast={showToast} />
 
       {/* Footer */}
-      <footer className={`relative z-10 py-6 sm:py-7 border-t mt-auto ${isDarkMode ? 'border-white/5 text-gray-400' : 'border-[#e2e8f0] text-gray-500'}`}>
+      <footer className={`relative z-10 py-6 border-t mt-auto ${isDarkMode ? 'border-white/5 text-gray-400' : 'border-[#e2e8f0] text-gray-500'}`}>
         <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-medium">
           <p className="text-center md:text-left leading-relaxed">
             &copy; {new Date().getFullYear()} <span className={isDarkMode ? 'text-white' : 'text-gray-900'}>EntropyHub</span>. Decentralized Randomness Beacon.
           </p>
-          <div className="flex flex-wrap justify-center gap-4 sm:gap-5 md:gap-6 mt-2 md:mt-0">
+          <div className="flex flex-wrap justify-center gap-5 md:gap-6 mt-2 md:mt-0">
             <a href="http://localhost:8000/docs" target="_blank" rel="noopener noreferrer" className="hover:text-[#00FFA3] transition-colors">Docs</a>
             <a href="https://github.com/Ahmetoyann/EntropyHub_A" target="_blank" rel="noopener noreferrer" className="hover:text-[#00FFA3] transition-colors">GitHub</a>
             <a 
