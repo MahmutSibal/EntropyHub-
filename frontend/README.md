@@ -1,70 +1,45 @@
-# Getting Started with Create React App
+# EntropyHub Frontend
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+EntropyHub React arayuzu, FastAPI backend ile entropi uretimi ve sistem sagligi goruntuleme amaciyla gelistirildi.
 
-## Available Scripts
+## Hizli Baslangic
 
-In the project directory, you can run:
+```bash
+npm install
+cp .env.example .env
+npm start
+```
 
-### `npm start`
+Varsayilan adres: `http://localhost:3000`
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+## Ortam Degiskenleri
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+`.env.example` dosyasini temel alin:
 
-### `npm test`
+- `REACT_APP_API_URL`: Backend adresi
+- `REACT_APP_API_KEY`: `x-api-key` degeri
+- `REACT_APP_API_TIMEOUT_MS`: istek timeout suresi (ms)
+- `REACT_APP_API_RETRY_COUNT`: timeout/5xx icin retry adedi
+- `REACT_APP_API_RETRY_DELAY_MS`: retry bekleme suresi (ms)
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Ozellikler
 
-### `npm run build`
+- Sidebar + main layout (1024px alti tek kolon responsive)
+- Entropi uretimi icin kullanici byte sayisi ayari
+- API durumlari: loading / error / timeout / retry
+- Sistem Sagligi paneli:
+	- `/health` sonucu
+	- son istek zamani
+	- hata log ozeti (`/api/stats.recent_errors`)
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Scriptler
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+- `npm start`: gelistirme
+- `npm run build`: production build
+- `npm test`: testler
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Ilgili Dokumanlar
 
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- `../docs/teknofest/FRONTEND_API_KULLANIM.md`
+- `../docs/teknofest/DEMO_SENARYOSU.md`
+- `../docs/teknofest/DEMO_CALISTIRMA_KILAVUZU.md`

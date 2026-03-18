@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserProvider, Contract } from 'ethers';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stars } from '@react-three/drei';
@@ -226,7 +226,15 @@ function App() {
   const [blockNumber, setBlockNumber] = useState(null);
   const [loading, setLoading] = useState(false);
   const [notification, setNotification] = useState(null);
-  const [stats, setStats] = useState({ totalBytes: 0, generationCount: 0 });
+  const [stats, setStats] = useState({ totalBytes: 0, generationCount: 0, lastRequestTime: null, recentErrors: [] });
+  const [byteCount, setByteCount] = useState(18);
+  const [apiState, setApiState] = useState({
+    phase: 'idle',
+    message: '',
+    lastRequestAt: null,
+    retryAfterSec: null,
+    errorType: null,
+  });
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState({ source: 'os_entropy', format: 'dec' });
   const rotationSpeed = 0.5;
@@ -243,6 +251,8 @@ function App() {
     setStats(prev => ({
       totalBytes: prev.totalBytes + byteCount,
       generationCount: prev.generationCount + 1,
+      lastRequestTime: new Date().toISOString(),
+      recentErrors: prev.recentErrors,
     }));
   };
 
@@ -275,20 +285,24 @@ function App() {
   // Klavye Kısayolları (Space ile üretim)
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.code === 'Space' && !loading && !showSettings && walletAddress) {
+      if (e.code === 'Space' && !loading && !showSettings) {
         e.preventDefault();
         handleGenerateEntropy();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [loading, showSettings, walletAddress]); 
+  }, [loading, showSettings, byteCount]); 
 
   // Gerçek zamanlı sistem sağlığı kontrolü (Polling)
   useEffect(() => {
     const checkHealth = async () => {
       try {
-        const healthData = await EntropyService.getHealth();
+        const [healthData, statsData] = await Promise.all([
+          EntropyService.getHealth(),
+          EntropyService.getStats(),
+        ]);
+
         setSystemStatus((prev) => {
           if (
             prev.status === healthData.status &&
@@ -298,6 +312,13 @@ function App() {
           }
           return healthData;
         });
+
+        setStats((prev) => ({
+          totalBytes: Number(statsData.total_bytes ?? prev.totalBytes ?? 0),
+          generationCount: Number(statsData.generation_count ?? prev.generationCount ?? 0),
+          lastRequestTime: statsData.last_request_time || prev.lastRequestTime,
+          recentErrors: Array.isArray(statsData.recent_errors) ? statsData.recent_errors : prev.recentErrors,
+        }));
       } catch (error) {
         // Hata durumunda sistemi 'PASİF' duruma (kırmızı ışık) geçirir
         setSystemStatus((prev) => {
@@ -317,37 +338,71 @@ function App() {
   }, []);
 
   // Backend'den Veri Çekme (EntropyService Entegrasyonu)
-  const handleGenerateEntropy = async () => {
+  const handleGenerateEntropy = useCallback(async () => {
     setLoading(true);
+    setApiState({
+      phase: 'loading',
+      message: 'API baglantisi kuruluyor ve entropi uretiliyor...',
+      lastRequestAt: new Date().toISOString(),
+      retryAfterSec: null,
+      errorType: null,
+    });
+
     try {
-      // 18 byte entropi iste
-      const result = await EntropyService.generateEntropy(18);
-      
-      // Backend'den dönen veri yapısını kontrol et
-      console.log('Gelen veri:', result);
+      const safeCount = Number.isFinite(Number(byteCount))
+        ? Math.max(1, Math.min(4096, Number(byteCount)))
+        : 18;
+
+      const result = await EntropyService.generateEntropy(safeCount);
       
       if (result && result.values) {
-        // { values: [1,2,3...] } formatında geliyor
         setEntropyData(result.values);
-        updateStats(18);
+        updateStats(result.count || safeCount);
+        setApiState({
+          phase: 'success',
+          message: `Istek basarili (${result.count} byte).`,
+          lastRequestAt: result.requestMeta?.completedAt || new Date().toISOString(),
+          retryAfterSec: null,
+          errorType: null,
+        });
         showToast(`${result.bytes} bytes of entropy generated`, 'success');
       } else if (Array.isArray(result)) {
-        // Direkt dizi olarak geliyor
         setEntropyData(result);
         updateStats(result.length);
+        setApiState({
+          phase: 'success',
+          message: `Istek basarili (${result.length} byte).`,
+          lastRequestAt: new Date().toISOString(),
+          retryAfterSec: null,
+          errorType: null,
+        });
         showToast(`${result.length} bytes of entropy generated`, 'success');
       } else {
-        console.warn('Unexpected format:', result);
+        setApiState({
+          phase: 'error',
+          message: 'Beklenmeyen veri formati alindi.',
+          lastRequestAt: new Date().toISOString(),
+          retryAfterSec: null,
+          errorType: 'unexpected',
+        });
         showToast('Unexpected data format', 'error');
       }
       
     } catch (error) {
-      console.error('Data generation error:', error);
-      showToast(`Error: ${error.message}`, 'error');
+      const parsedError = EntropyService.parseError(error);
+      const phase = parsedError.type === 'timeout' ? 'timeout' : 'error';
+      setApiState({
+        phase,
+        message: parsedError.message,
+        lastRequestAt: new Date().toISOString(),
+        retryAfterSec: parsedError.retryAfterSec,
+        errorType: parsedError.type,
+      });
+      showToast(parsedError.message, 'error');
     } finally {
       setLoading(false);
     }
-  };
+  }, [byteCount]);
 
   // Blokzincire Veri Kaydetme (Transaction)
   const handleSaveToBlockchain = async () => {
@@ -513,6 +568,18 @@ function App() {
             </h2>
             
             <div className="space-y-4">
+              <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-[#050b14] border-gray-800' : 'bg-[#f8fafc] border-[#e2e8f0]'}`}>
+                <label className={`block text-xs mb-2 ${subTextColor}`}>Byte Count (1-4096)</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="4096"
+                  value={byteCount}
+                  onChange={(e) => setByteCount(e.target.value)}
+                  className={`w-full p-3 rounded-xl text-sm outline-none border font-mono ${isDarkMode ? 'bg-[#0A1929] border-gray-700 text-white' : 'bg-white border-[#e2e8f0] text-[#1e293b]'}`}
+                />
+              </div>
+
               <button 
                 onClick={handleGenerateEntropy}
                 disabled={loading}
@@ -594,6 +661,36 @@ function App() {
               <span className={`text-xs mt-1 font-medium ${subTextColor}`}>Network</span>
             </div>
           </div>
+
+          <div className={`p-4 rounded-2xl border ${isDarkMode ? 'bg-[#050b14] border-gray-800' : 'bg-[#ffffff] border-[#e2e8f0]'}`}>
+            <h4 className={`text-xs font-bold uppercase tracking-wider mb-3 ${subTextColor}`}>System Health</h4>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between gap-2">
+                <span className={subTextColor}>Last API Request</span>
+                <span className="font-mono text-gray-300">{apiState.lastRequestAt || '-'}</span>
+              </div>
+              <div className="flex justify-between gap-2">
+                <span className={subTextColor}>/health Status</span>
+                <span className={`font-mono ${systemStatus.status === 'healthy' ? 'text-[#00FFA3]' : 'text-red-400'}`}>{systemStatus.status || 'unknown'}</span>
+              </div>
+              <div>
+                <span className={`${subTextColor} block mb-1`}>Recent Error Summary</span>
+                {stats.recentErrors && stats.recentErrors.length > 0 ? (
+                  <div className="space-y-1 max-h-28 overflow-y-auto pr-1">
+                    {stats.recentErrors.slice(0, 3).map((item, idx) => (
+                      <div key={`${item.request_id || idx}-${idx}`} className="rounded-lg px-2 py-1 bg-red-500/10 border border-red-500/20 text-red-300 font-mono text-[10px]">
+                        [{item.event}] {item.path || '-'} {item.status || ''}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-lg px-2 py-1 bg-[#00FFA3]/5 border border-[#00FFA3]/20 text-[#00FFA3] font-mono text-[10px]">
+                    No recent API errors
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </aside>
 
         {/* Main Content: Simülasyon ve İstatistikler */}
@@ -650,6 +747,26 @@ function App() {
                 <span className={`w-1.5 h-6 rounded-full ${isDarkMode ? 'bg-[#00FFA3] shadow-[0_0_10px_#00FFA3]' : 'bg-[#0A1929]'}`}></span>
                 Output (Byte Stream)
               </h3>
+
+              {apiState.phase === 'loading' && (
+                <div className="mb-4 p-4 rounded-2xl border border-blue-500/30 bg-blue-500/10 text-blue-200 text-sm flex items-center gap-2">
+                  <SpinnerIcon />
+                  <span>{apiState.message}</span>
+                </div>
+              )}
+
+              {(apiState.phase === 'error' || apiState.phase === 'timeout') && (
+                <div className="mb-4 p-4 rounded-2xl border border-red-500/30 bg-red-500/10 text-red-100 text-sm space-y-2">
+                  <div>{apiState.message}</div>
+                  {apiState.retryAfterSec && <div className="text-xs text-red-300">Retry-After: {apiState.retryAfterSec}s</div>}
+                  <button
+                    onClick={handleGenerateEntropy}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-500/20 border border-red-500/40 hover:bg-red-500/30 transition-colors"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
               
               <div className="grid grid-cols-3 sm:grid-cols-6 lg:grid-cols-9 gap-3 content-start flex-1">
                 {entropyData.length > 0 ? entropyData.map((val, idx) => (
@@ -686,13 +803,13 @@ function App() {
           <div className="flex flex-wrap justify-center gap-5 md:gap-6 mt-2 md:mt-0">
             <a href="http://localhost:8000/docs" target="_blank" rel="noopener noreferrer" className="hover:text-[#00FFA3] transition-colors">Docs</a>
             <a href="https://github.com/Ahmetoyann/EntropyHub_A" target="_blank" rel="noopener noreferrer" className="hover:text-[#00FFA3] transition-colors">GitHub</a>
-            <a 
-              href="#" 
-              onClick={(e) => { e.preventDefault(); setShowStatusModal(true); }} 
+            <button
+              type="button"
+              onClick={() => setShowStatusModal(true)}
               className="hover:text-[#00FFA3] transition-colors"
             >
               Status
-            </a>
+            </button>
           </div>
         </div>
       </footer>
