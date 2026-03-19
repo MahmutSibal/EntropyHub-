@@ -8,7 +8,7 @@ Write-Host "[EntropyHub] API ve Frontend demo ortami baslatiliyor..."
 
 $repoRoot = Split-Path -Parent $PSScriptRoot
 
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$repoRoot'; uvicorn api.main:app --host $ApiHost --port $ApiPort --reload"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$repoRoot'; py -m uvicorn api.main:app --host $ApiHost --port $ApiPort --reload"
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$repoRoot\\frontend'; npm start -- --port $FrontendPort"
 
 Write-Host "[EntropyHub] API: http://$ApiHost`:$ApiPort"
